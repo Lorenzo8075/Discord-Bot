@@ -1,0 +1,91 @@
+import discord
+import random
+import os
+import requests
+import json
+import random
+from replit import db
+from discord.ext import commands
+from stay_alive import stay_alive
+
+client = discord.Client()
+
+cat_trigger = ["cat ", "cats ", "cat", "kitty ", " kitty", "kitty", "kitties "]
+greeting_trigger = ["Hello", "hello", "hi ", " hi", "morning"]
+quotes_trigger = ["quote", "saying", "inspire me"]
+joke_trigger = ["tell me", "joke", "funny","make me laugh"]
+sad_words = ["sad "," sad", "sad", "depressed","unhappy", "angry", "miserable","depressing", "I don't feel good"]
+starter_encouragements = [
+  "Hang in there, it'll get better.",
+  "I'm sorry to hear that, I want you to know that you are a great person", "I want you to know that I am here for you!", "I'm so lucky to have you as my friend, I hope you'll feel better soon","I know how it feels, I'm sorry to hear that","Be strong!" 
+]
+# dog_trigger = ["puppy"]
+
+def get_quote():
+  response = requests.get("https://zenquotes.io/api/random")
+  json_data = json.loads(response.text)
+  quote = json_data[0]['q'] + " - " + json_data[0]['a']
+  return(quote)
+
+def get_joke():
+  response = requests.get('https://icanhazdadjoke.com/',headers={"Accept": "application/json"})
+  json_data = response.json()
+  joke = json_data['joke']
+  return joke  
+
+# bot is ready event
+@client.event
+async def on_ready():
+  print(f'{client.user} is ready.')
+
+@client.event
+async def on_message(message):
+  if message.author == client.user:
+    return #wait for the user to input a message
+
+  if any(word in message.content for word in greeting_trigger):
+    await message.channel.send('Hello human')  # send hello human when user starts with Hello
+
+  if any(word in message.content for word in quotes_trigger):
+    quote = get_quote()
+    await message.channel.send(quote) 
+
+  if any(word in message.content for word in joke_trigger):
+    joke = get_joke()
+    await message.channel.send(joke)
+
+  if any(word in message.content for word in sad_words):
+
+    response = requests.get('https://api.thecatapi.com/v1/images/search')
+    data = response.json()
+
+    await message.channel.send(random.choice(starter_encouragements))
+
+    await message.channel.send(data[0]['url'])
+
+  if any(word in message.content for word in cat_trigger):
+
+    response = requests.get('https://api.thecatapi.com/v1/images/search')
+    data = response.json()
+
+    await message.channel.send(data[0]['url'])
+
+  # if any(word in message.content for word in dog_trigger):
+  #   response = requests.get('https://dog.ceo/api/breeds/image/random')
+  #   data = response.json()
+
+    await message.channel.send(data['message'])
+
+  if message.content.startswith("Bot mode:"):
+    value = message.content.split("Bot mode: ",1)[1]
+
+    if value.lower() == "true":
+      db["responding"] = True
+      await message.channel.send("Responding is on.")
+    else:
+      db["responding"] = False
+      await message.channel.send("Responding is off.")
+  
+  
+stay_alive()
+client.run(os.getenv('TOKEN'))  
